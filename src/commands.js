@@ -2,10 +2,17 @@ const vscode = require('vscode');
 const store = require('./novelStore');
 
 /**
- * @param {{ tree: import('./novelTree').NovelTreeProvider, boss: import('./bossKey').BossKey, wordCount: import('./wordCount').WordCountStatus }} deps
+ * @param {{ tree: import('./novelTree').NovelTreeProvider, boss: import('./bossKey').BossKey, wordCount: import('./wordCount').WordCountStatus, draft: import('./draftPanel').DraftPanelProvider }} deps
  */
 function registerCommands(context, deps) {
-  const { tree, boss, wordCount } = deps;
+  const { tree, boss, wordCount, draft } = deps;
+
+  async function openInDraft(chapterId) {
+    await draft.openChapter(chapterId);
+    // Keep decoy code in the main editor so it looks like coding
+    await boss.showCover({ preserveFocus: true });
+    await draft.reveal();
+  }
 
   const refreshAll = async () => {
     tree.refresh();
@@ -26,7 +33,7 @@ function registerCommands(context, deps) {
         vscode.window.showInformationMessage(`已初始化小说文件夹：${store.getRootName()}/`);
         const meta = await store.loadMeta();
         if (meta && meta.chapters[0]) {
-          await vscode.commands.executeCommand('novelWriter.openChapter', meta.chapters[0].id);
+          await openInDraft(meta.chapters[0].id);
         }
       } catch (e) {
         vscode.window.showErrorMessage(String(e.message || e));
@@ -43,10 +50,9 @@ function registerCommands(context, deps) {
           placeHolder: '第二章'
         });
         if (title === undefined) return;
-        const { uri } = await store.addChapter(title.trim() || undefined);
+        const { chapter } = await store.addChapter(title.trim() || undefined);
         await refreshAll();
-        const doc = await vscode.workspace.openTextDocument(uri);
-        await vscode.window.showTextDocument(doc);
+        await openInDraft(chapter.id);
       } catch (e) {
         vscode.window.showErrorMessage(String(e.message || e));
       }
@@ -58,14 +64,19 @@ function registerCommands(context, deps) {
         if (!meta) return;
         let id = chapterId;
         if (!id || typeof id !== 'string') {
-          // from tree item
           if (chapterId && chapterId.chapter) id = chapterId.chapter.id;
         }
         if (!id) return;
-        const uri = store.getChapterUri(id, meta);
-        if (!uri) return;
-        const doc = await vscode.workspace.openTextDocument(uri);
-        await vscode.window.showTextDocument(doc);
+        await openInDraft(id);
+      } catch (e) {
+        vscode.window.showErrorMessage(String(e.message || e));
+      }
+    }),
+
+    vscode.commands.registerCommand('novelWriter.focusDraft', async () => {
+      try {
+        await boss.showCover({ preserveFocus: true });
+        await draft.reveal();
       } catch (e) {
         vscode.window.showErrorMessage(String(e.message || e));
       }
@@ -134,6 +145,12 @@ function registerCommands(context, deps) {
           return;
         }
         let chapter = item && item.chapter;
+        if (!chapter) {
+          const panelId = draft.getActiveChapterId();
+          if (panelId) {
+            chapter = meta.chapters.find((c) => c.id === panelId);
+          }
+        }
         if (!chapter) {
           const editor = vscode.window.activeTextEditor;
           if (editor) {
@@ -214,30 +231,42 @@ function registerCommands(context, deps) {
 
     vscode.commands.registerCommand('novelWriter.exportCurrent', async () => {
       try {
-        const editor = vscode.window.activeTextEditor;
         const meta = await store.loadMeta();
-        if (!editor || !meta) {
+        if (!meta) {
           vscode.window.showWarningMessage('请先打开一个章节');
           return;
         }
-        const found = store.findChapterByUri(editor.document.uri, meta);
-        if (!found) {
-          vscode.window.showWarningMessage('当前文件不是小说章节');
+        let chapter = null;
+        let text = '';
+        const panelId = draft.getActiveChapterId();
+        if (panelId) {
+          chapter = meta.chapters.find((c) => c.id === panelId);
+          text = draft.getActiveContent() || '';
+        }
+        if (!chapter) {
+          const editor = vscode.window.activeTextEditor;
+          if (editor) {
+            const found = store.findChapterByUri(editor.document.uri, meta);
+            if (found) {
+              chapter = found.chapter;
+              text = editor.document.getText();
+            }
+          }
+        }
+        if (!chapter) {
+          vscode.window.showWarningMessage('请先在底部 Console 打开一个章节');
           return;
         }
         const folder = store.getWorkspaceFolder();
         if (!folder) return;
-        const safe = found.chapter.title.replace(/[\\/:*?"<>|]/g, '_');
+        const safe = chapter.title.replace(/[\\/:*?"<>|]/g, '_');
         const defaultUri = vscode.Uri.joinPath(folder.uri, `${safe}.md`);
         const uri = await vscode.window.showSaveDialog({
           defaultUri,
           filters: { Markdown: ['md'] }
         });
         if (!uri) return;
-        await vscode.workspace.fs.writeFile(
-          uri,
-          Buffer.from(editor.document.getText(), 'utf8')
-        );
+        await vscode.workspace.fs.writeFile(uri, Buffer.from(text, 'utf8'));
         vscode.window.showInformationMessage(`已导出：${uri.fsPath}`);
       } catch (e) {
         vscode.window.showErrorMessage(String(e.message || e));

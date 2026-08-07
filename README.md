@@ -1,24 +1,33 @@
 # Novel Writer
 
-在 **Cursor / VS Code** 里写小说：章节存成工作区 Markdown，方便 Git 备份与多设备同步。侧边栏章节树、状态栏字数、Boss 键一键切到假代码。
+在 **Cursor / VS Code** 里写小说：章节存成工作区 Markdown，方便 Git 备份与多设备同步。
+
+**摸鱼布局（v0.2）**：上方主编辑区显示假代码，下方像终端一样的 **Console / node** 面板里写正文——路过的人看起来像在看日志/调试。
 
 ## Features
 
+- **底部 Console 写作**：终端风格面板，正文不占满屏
+- **上方代码掩护**：打开章节时自动在主编辑区打开假 `utils.js`
 - **工作区存储**：`novel/novel.json` + `novel/chapters/*.md`
 - **章节树**：新建 / 打开 / 重命名 / 删除 / 上移 / 下移
-- **字数统计**：中文按字、英文按词；显示本章、全书、目标进度
-- **Boss Mode**：`Ctrl+Shift+B`（Mac：`Cmd+Shift+B`）在章节与假 `utils.js` 之间切换
+- **字数统计**：中文按字、英文按词；状态栏显示本章、全书、目标进度
+- **Boss Mode**：`Ctrl+Shift+B` 关掉底部面板，只留代码；再按切回写作
 - **导出**：合并全书或导出当前章为 `.md`
 
 ## Workspace layout
 
 ```
+┌─────────────────────────────────────┐
+│  主编辑区：假 utils.js（看起来在写代码） │
+├─────────────────────────────────────┤
+│  Console / node：小说正文（像终端）     │
+└─────────────────────────────────────┘
+
 <workspace>/
   novel/
     novel.json
     chapters/
       001-第一章-引子.md
-      002-第二章.md
 ```
 
 设置 `novelWriter.root` 可改文件夹名（默认 `novel`）。
@@ -27,15 +36,18 @@
 
 1. 打开任意工作区文件夹
 2. 点击左侧活动栏 **Novel Writer** 图标
-3. 点击 **Initialize Novel Folder**（或命令面板：`Novel: Initialize Novel Folder`）
-4. 在章节树上新建章节，用编辑器正常写 Markdown
-5. 老板靠近时按 `Ctrl+Shift+B` 进入 Boss Mode
+3. **Initialize Novel Folder**
+4. 点击章节 → 上方出现代码，下方 **Console** 面板开始写
+5. 老板靠近：`Ctrl+Shift+B` 隐藏底部面板；再按恢复
+
+可用拖拽把底部面板调矮一点，更像终端高度。
 
 ## Commands
 
 | Command | Default key |
 |---------|-------------|
 | Novel: Toggle Boss Mode | `Ctrl+Shift+B` |
+| Novel: Focus Draft Console | `Ctrl+Alt+\`` |
 | Novel: New Chapter | `Ctrl+Alt+N` |
 | Novel: Initialize Novel Folder | — |
 | Novel: Export Merged Markdown | — |

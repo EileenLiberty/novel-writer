@@ -2,7 +2,7 @@
   "name": "novel-writer",
   "displayName": "Novel Writer",
   "description": "Write novels in your workspace as Markdown chapters. Sidebar chapter tree, word count, and Boss Key cover mode for Cursor / VS Code.",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "publisher": "EileenLiberty",
   "license": "MIT",
   "engines": {
@@ -18,7 +18,8 @@
     "fiction",
     "markdown",
     "word count",
-    "boss key"
+    "boss key",
+    "console"
   ],
   "activationEvents": [
     "onStartupFinished"
@@ -48,6 +49,13 @@
           "title": "Novel Writer",
           "icon": "media/icon.svg"
         }
+      ],
+      "panel": [
+        {
+          "id": "novel-writer-panel",
+          "title": "Console",
+          "icon": "$(terminal)"
+        }
       ]
     },
     "views": {
@@ -55,6 +63,13 @@
         {
           "id": "novelWriter.chapters",
           "name": "Chapters"
+        }
+      ],
+      "novel-writer-panel": [
+        {
+          "type": "webview",
+          "id": "novelWriter.draft",
+          "name": "node"
         }
       ]
     },
@@ -92,6 +107,10 @@
       {
         "command": "novelWriter.openChapter",
         "title": "Novel: Open Chapter"
+      },
+      {
+        "command": "novelWriter.focusDraft",
+        "title": "Novel: Focus Draft Console"
       },
       {
         "command": "novelWriter.setTarget",
@@ -192,6 +211,11 @@
         "command": "novelWriter.newChapter",
         "key": "ctrl+alt+n",
         "mac": "cmd+alt+n"
+      },
+      {
+        "command": "novelWriter.focusDraft",
+        "key": "ctrl+alt+`",
+        "mac": "cmd+alt+`"
       }
     ]
   },

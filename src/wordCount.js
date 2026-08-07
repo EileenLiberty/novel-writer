@@ -2,7 +2,11 @@ const vscode = require('vscode');
 const store = require('./novelStore');
 
 class WordCountStatus {
-  constructor() {
+  /**
+   * @param {{ draft?: import('./draftPanel').DraftPanelProvider }} [deps]
+   */
+  constructor(deps) {
+    this.deps = deps || {};
     this.item = vscode.window.createStatusBarItem(
       vscode.StatusBarAlignment.Left,
       100
@@ -10,12 +14,13 @@ class WordCountStatus {
     this.item.command = 'novelWriter.setTarget';
     this.item.tooltip = 'Novel Writer 字数统计（点击设置本章目标）';
     this._timer = null;
-    this._disposables = [];
+    /** @type {{ chapterId?: string, content?: string, words?: number }|null} */
+    this._panelInfo = null;
   }
 
   activate(context) {
     context.subscriptions.push(this.item);
-    this._disposables.push(
+    context.subscriptions.push(
       vscode.window.onDidChangeActiveTextEditor(() => this.update()),
       vscode.workspace.onDidChangeTextDocument((e) => {
         const ed = vscode.window.activeTextEditor;
@@ -23,7 +28,15 @@ class WordCountStatus {
       }),
       vscode.workspace.onDidSaveTextDocument(() => this.update())
     );
-    this._disposables.forEach((d) => context.subscriptions.push(d));
+    this.update();
+  }
+
+  /**
+   * Called from draft panel when content changes.
+   * @param {{ chapterId: string, title: string, content: string, words: number }} info
+   */
+  onPanelWords(info) {
+    this._panelInfo = info;
     this.update();
   }
 
@@ -33,45 +46,68 @@ class WordCountStatus {
   }
 
   async update() {
-    const editor = vscode.window.activeTextEditor;
-    if (!editor || !store.isChapterUri(editor.document.uri)) {
-      this.item.hide();
-      return;
-    }
-
     const meta = await store.loadMeta();
     if (!meta) {
       this.item.hide();
       return;
     }
 
-    const found = store.findChapterByUri(editor.document.uri, meta);
-    if (!found) {
+    let chapter = null;
+    let index = -1;
+    let chapterWords = 0;
+    let fromPanel = false;
+
+    if (this._panelInfo && this._panelInfo.chapterId) {
+      index = meta.chapters.findIndex((c) => c.id === this._panelInfo.chapterId);
+      if (index >= 0) {
+        chapter = meta.chapters[index];
+        chapterWords =
+          typeof this._panelInfo.words === 'number'
+            ? this._panelInfo.words
+            : store.countWords(this._panelInfo.content || '');
+        fromPanel = true;
+      }
+    }
+
+    if (!chapter) {
+      const editor = vscode.window.activeTextEditor;
+      if (editor && store.isChapterUri(editor.document.uri)) {
+        const found = store.findChapterByUri(editor.document.uri, meta);
+        if (found) {
+          chapter = found.chapter;
+          index = found.index;
+          chapterWords = store.countWords(editor.document.getText());
+        }
+      }
+    }
+
+    if (!chapter) {
       this.item.hide();
       return;
     }
 
-    const chapterWords = store.countWords(editor.document.getText());
     let totalWords = 0;
     const all = await store.readAllChapterContents(meta);
     for (const item of all) {
-      if (item.chapter.id === found.chapter.id) {
+      if (item.chapter.id === chapter.id) {
         totalWords += chapterWords;
       } else {
         totalWords += store.countWords(item.content);
       }
     }
 
-    const target = found.chapter.target || 0;
-    const pct = target > 0 ? Math.min(100, Math.round((chapterWords / target) * 100)) : null;
+    const target = chapter.target || 0;
+    const pct =
+      target > 0 ? Math.min(100, Math.round((chapterWords / target) * 100)) : null;
     const parts = [
       `字数 ${chapterWords.toLocaleString()}`,
       `全书 ${totalWords.toLocaleString()}`,
-      `第 ${found.index + 1}/${meta.chapters.length} 章`
+      `第 ${index + 1}/${meta.chapters.length} 章`
     ];
     if (pct !== null) parts.push(`目标 ${pct}%`);
+    if (fromPanel) parts.unshift('Console');
 
-    this.item.text = `$(book) ${parts.join(' | ')}`;
+    this.item.text = `$(terminal) ${parts.join(' | ')}`;
     this.item.show();
   }
 

@@ -2,11 +2,11 @@
 
 ## 1. 本地安装（Cursor）
 
-扩展已打包为同目录下的 `novel-writer-0.1.0.vsix`。
+扩展已打包为同目录下的 `novel-writer-0.2.0.vsix`。
 
 1. 打开命令面板（`Ctrl+Shift+P`）
 2. 运行 **Extensions: Install from VSIX...**
-3. 选择 `novel-writer-ext/novel-writer-0.1.0.vsix`
+3. 选择 `novel-writer-ext/novel-writer-0.2.0.vsix`
 4. Reload 窗口
 5. 左侧活动栏出现 **Novel Writer** 图标
 
@@ -48,7 +48,7 @@ Cursor 扩展市场主要使用 Open VSX。
 3. 执行：
 
 ```bash
-npx ovsx publish novel-writer-0.1.0.vsix -p <token>
+npx ovsx publish novel-writer-0.2.0.vsix -p <token>
 ```
 
 ## 5. 版本升级

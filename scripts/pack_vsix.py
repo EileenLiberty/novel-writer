@@ -24,6 +24,7 @@ def should_include(rel: str) -> bool:
         "scripts/",
         ".git/",
         ".vscode/",
+        ".tools/",
         "node_modules/",
     )
     if any(rel.startswith(p) for p in skip_prefixes):
