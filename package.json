@@ -1,0 +1,209 @@
+{
+  "name": "novel-writer",
+  "displayName": "Novel Writer",
+  "description": "Write novels in your workspace as Markdown chapters. Sidebar chapter tree, word count, and Boss Key cover mode for Cursor / VS Code.",
+  "version": "0.1.0",
+  "publisher": "EileenLiberty",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other",
+    "Notebooks"
+  ],
+  "keywords": [
+    "novel",
+    "writing",
+    "fiction",
+    "markdown",
+    "word count",
+    "boss key"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./src/extension.js",
+  "icon": "media/icon.png",
+  "contributes": {
+    "configuration": {
+      "title": "Novel Writer",
+      "properties": {
+        "novelWriter.root": {
+          "type": "string",
+          "default": "novel",
+          "description": "Relative path of the novel folder inside the workspace."
+        },
+        "novelWriter.defaultTarget": {
+          "type": "number",
+          "default": 3000,
+          "description": "Default target word count for new chapters."
+        }
+      }
+    },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "novel-writer",
+          "title": "Novel Writer",
+          "icon": "media/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "novel-writer": [
+        {
+          "id": "novelWriter.chapters",
+          "name": "Chapters"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "novelWriter.initNovel",
+        "title": "Novel: Initialize Novel Folder",
+        "icon": "$(new-folder)"
+      },
+      {
+        "command": "novelWriter.newChapter",
+        "title": "Novel: New Chapter",
+        "icon": "$(new-file)"
+      },
+      {
+        "command": "novelWriter.renameChapter",
+        "title": "Novel: Rename Chapter",
+        "icon": "$(edit)"
+      },
+      {
+        "command": "novelWriter.deleteChapter",
+        "title": "Novel: Delete Chapter",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "novelWriter.moveChapterUp",
+        "title": "Novel: Move Chapter Up",
+        "icon": "$(arrow-up)"
+      },
+      {
+        "command": "novelWriter.moveChapterDown",
+        "title": "Novel: Move Chapter Down",
+        "icon": "$(arrow-down)"
+      },
+      {
+        "command": "novelWriter.openChapter",
+        "title": "Novel: Open Chapter"
+      },
+      {
+        "command": "novelWriter.setTarget",
+        "title": "Novel: Set Chapter Target Word Count"
+      },
+      {
+        "command": "novelWriter.renameNovel",
+        "title": "Novel: Rename Novel"
+      },
+      {
+        "command": "novelWriter.refresh",
+        "title": "Novel: Refresh Chapter Tree",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "novelWriter.bossMode",
+        "title": "Novel: Toggle Boss Mode",
+        "icon": "$(eye)"
+      },
+      {
+        "command": "novelWriter.exportMerged",
+        "title": "Novel: Export Merged Markdown",
+        "icon": "$(export)"
+      },
+      {
+        "command": "novelWriter.exportCurrent",
+        "title": "Novel: Export Current Chapter"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "novelWriter.newChapter",
+          "when": "view == novelWriter.chapters",
+          "group": "navigation@1"
+        },
+        {
+          "command": "novelWriter.initNovel",
+          "when": "view == novelWriter.chapters",
+          "group": "navigation@2"
+        },
+        {
+          "command": "novelWriter.refresh",
+          "when": "view == novelWriter.chapters",
+          "group": "navigation@3"
+        },
+        {
+          "command": "novelWriter.bossMode",
+          "when": "view == novelWriter.chapters",
+          "group": "navigation@4"
+        },
+        {
+          "command": "novelWriter.exportMerged",
+          "when": "view == novelWriter.chapters",
+          "group": "navigation@5"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "novelWriter.renameChapter",
+          "when": "view == novelWriter.chapters && viewItem == chapter",
+          "group": "inline@1"
+        },
+        {
+          "command": "novelWriter.deleteChapter",
+          "when": "view == novelWriter.chapters && viewItem == chapter",
+          "group": "inline@2"
+        },
+        {
+          "command": "novelWriter.moveChapterUp",
+          "when": "view == novelWriter.chapters && viewItem == chapter",
+          "group": "1_move@1"
+        },
+        {
+          "command": "novelWriter.moveChapterDown",
+          "when": "view == novelWriter.chapters && viewItem == chapter",
+          "group": "1_move@2"
+        },
+        {
+          "command": "novelWriter.setTarget",
+          "when": "view == novelWriter.chapters && viewItem == chapter",
+          "group": "2_edit@1"
+        },
+        {
+          "command": "novelWriter.renameNovel",
+          "when": "view == novelWriter.chapters && viewItem == novelRoot",
+          "group": "1_edit@1"
+        }
+      ]
+    },
+    "keybindings": [
+      {
+        "command": "novelWriter.bossMode",
+        "key": "ctrl+shift+b",
+        "mac": "cmd+shift+b"
+      },
+      {
+        "command": "novelWriter.newChapter",
+        "key": "ctrl+alt+n",
+        "mac": "cmd+alt+n"
+      }
+    ]
+  },
+  "scripts": {
+    "package": "npx @vscode/vsce package --no-dependencies",
+    "publish": "npx @vscode/vsce publish --no-dependencies"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/EileenLiberty/novel-writer"
+  },
+  "bugs": {
+    "url": "https://github.com/EileenLiberty/novel-writer/issues"
+  }
+}

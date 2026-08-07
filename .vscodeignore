@@ -1,0 +1,12 @@
+.vscode/**
+.vscode-test/**
+.gitignore
+*.vsix
+**/*.map
+.DS_Store
+scripts/**
+docs/**
+*.md
+!README.md
+!CHANGELOG.md
+!LICENSE
