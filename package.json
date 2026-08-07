@@ -2,7 +2,7 @@
   "name": "novel-writer",
   "displayName": "Novel Writer",
   "description": "Write novels in your workspace as Markdown chapters. Sidebar chapter tree, word count, and Boss Key cover mode for Cursor / VS Code.",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "publisher": "EileenLiberty",
   "license": "MIT",
   "engines": {
@@ -39,6 +39,16 @@
           "type": "number",
           "default": 3000,
           "description": "Default target word count for new chapters."
+        },
+        "novelWriter.autoIndent": {
+          "type": "boolean",
+          "default": true,
+          "description": "When pressing Enter in the Console draft panel, start the next paragraph with a first-line indent."
+        },
+        "novelWriter.indentText": {
+          "type": "string",
+          "default": "　　",
+          "description": "Indent inserted at the start of a new paragraph (default: two full-width spaces)."
         }
       }
     },

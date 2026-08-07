@@ -1,5 +1,11 @@
 # Change Log
 
+## 0.2.1
+
+- Console 写作区：按 Enter 自动首行缩进两个全角空格（小说排版）
+- Shift+Enter 换行不缩进
+- 设置项 `novelWriter.autoIndent` / `novelWriter.indentText` 可开关与自定义缩进
+
 ## 0.2.0
 
 - Writing moves to a bottom **Console / node** panel (terminal-like)

@@ -6,6 +6,7 @@
 
 ## Features
 
+- **首行缩进**：Console 里按 Enter 自动缩进两个全角空格；`Shift+Enter` 不缩进
 - **底部 Console 写作**：终端风格面板，正文不占满屏
 - **上方代码掩护**：打开章节时自动在主编辑区打开假 `utils.js`
 - **工作区存储**：`novel/novel.json` + `novel/chapters/*.md`
@@ -59,11 +60,13 @@
 |---------|---------|-------------|
 | `novelWriter.root` | `novel` | 小说根目录（相对工作区） |
 | `novelWriter.defaultTarget` | `3000` | 新章节默认目标字数 |
+| `novelWriter.autoIndent` | `true` | Enter 换段时自动首行缩进 |
+| `novelWriter.indentText` | `　　` | 缩进内容（默认两个全角空格） |
 
 ## Install from VSIX (Cursor)
 
 1. `Extensions: Install from VSIX...`
-2. 选择 `novel-writer-0.1.0.vsix`
+2. 选择 `novel-writer-0.2.1.vsix`
 3. Reload 窗口
 
 或命令行：

@@ -22,6 +22,25 @@ class DraftPanelProvider {
     this.uri = null;
     this._saveTimer = null;
     this._pendingContent = null;
+
+    context.subscriptions.push(
+      vscode.workspace.onDidChangeConfiguration((e) => {
+        if (
+          e.affectsConfiguration('novelWriter.autoIndent') ||
+          e.affectsConfiguration('novelWriter.indentText')
+        ) {
+          this._post({ type: 'config', ...this._indentConfig() });
+        }
+      })
+    );
+  }
+
+  _indentConfig() {
+    const cfg = vscode.workspace.getConfiguration('novelWriter');
+    return {
+      autoIndent: cfg.get('autoIndent', true) !== false,
+      indentText: cfg.get('indentText', '　　') || '　　'
+    };
   }
 
   resolveWebviewView(webviewView) {
@@ -35,6 +54,7 @@ class DraftPanelProvider {
     webviewView.webview.onDidReceiveMessage(async (msg) => {
       if (!msg || !msg.type) return;
       if (msg.type === 'ready') {
+        this._post({ type: 'config', ...this._indentConfig() });
         if (this.chapterId) {
           await this._pushState();
         } else {
@@ -151,7 +171,8 @@ class DraftPanelProvider {
       type: 'load',
       title: this.title,
       content: content || '',
-      words
+      words,
+      ...this._indentConfig()
     });
   }
 
@@ -233,6 +254,7 @@ class DraftPanelProvider {
       <span class="prompt">$</span>
       <span class="title" id="title">node repl</span>
       <span class="meta" id="meta"></span>
+      <span class="meta" id="indentHint">Enter 缩进</span>
       <span class="meta" id="save">ready</span>
     </div>
     <textarea id="editor" spellcheck="false" placeholder=""></textarea>
@@ -244,17 +266,44 @@ class DraftPanelProvider {
     const titleEl = document.getElementById('title');
     const metaEl = document.getElementById('meta');
     const saveEl = document.getElementById('save');
+    const indentHint = document.getElementById('indentHint');
     let applying = false;
+    let autoIndent = true;
+    let indentText = '\u3000\u3000';
 
     function setWords(n) {
       metaEl.textContent = (n || 0).toLocaleString() + ' words';
     }
 
+    function applyConfig(msg) {
+      if (typeof msg.autoIndent === 'boolean') autoIndent = msg.autoIndent;
+      if (typeof msg.indentText === 'string' && msg.indentText.length) {
+        indentText = msg.indentText;
+      }
+      if (indentHint) {
+        indentHint.textContent = autoIndent ? 'Enter 缩进' : '缩进关';
+      }
+    }
+
+    function emitChange() {
+      saveEl.textContent = 'writing…';
+      const content = editor.value;
+      const cjk = (content.match(/[\\u4e00-\\u9fff]/g) || []).length;
+      const words = (content.replace(/[\\u4e00-\\u9fff]/g, ' ').match(/[a-zA-Z0-9]+/g) || []).length;
+      setWords(cjk + words);
+      vscode.postMessage({ type: 'change', content });
+    }
+
     window.addEventListener('message', (e) => {
       const msg = e.data;
       if (!msg) return;
+      if (msg.type === 'config') {
+        applyConfig(msg);
+        return;
+      }
       if (msg.type === 'load') {
         document.body.classList.remove('empty');
+        applyConfig(msg);
         applying = true;
         titleEl.textContent = 'session/' + (msg.title || 'draft');
         editor.value = msg.content || '';
@@ -276,12 +325,23 @@ class DraftPanelProvider {
 
     editor.addEventListener('input', () => {
       if (applying) return;
-      saveEl.textContent = 'writing…';
-      const content = editor.value;
-      const cjk = (content.match(/[\\u4e00-\\u9fff]/g) || []).length;
-      const words = (content.replace(/[\\u4e00-\\u9fff]/g, ' ').match(/[a-zA-Z0-9]+/g) || []).length;
-      setWords(cjk + words);
-      vscode.postMessage({ type: 'change', content });
+      emitChange();
+    });
+
+    editor.addEventListener('keydown', (e) => {
+      if (e.key !== 'Enter' || e.ctrlKey || e.metaKey || e.altKey) return;
+      // Shift+Enter: normal newline, no indent
+      if (e.shiftKey || !autoIndent) return;
+      e.preventDefault();
+      const start = editor.selectionStart;
+      const end = editor.selectionEnd;
+      const before = editor.value.slice(0, start);
+      const after = editor.value.slice(end);
+      const insert = '\\n' + indentText;
+      editor.value = before + insert + after;
+      const pos = before.length + insert.length;
+      editor.selectionStart = editor.selectionEnd = pos;
+      emitChange();
     });
 
     window.addEventListener('keydown', (e) => {
