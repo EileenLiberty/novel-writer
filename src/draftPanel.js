@@ -294,6 +294,35 @@ class DraftPanelProvider {
       vscode.postMessage({ type: 'change', content });
     }
 
+    /** Keep caret visible after Enter / typing near the end */
+    function scrollCaretIntoView() {
+      requestAnimationFrame(() => {
+        const pos = editor.selectionEnd;
+        const len = editor.value.length;
+        // Writing at (or near) the end: stick to bottom like a terminal
+        if (pos >= len - 4) {
+          editor.scrollTop = editor.scrollHeight;
+          return;
+        }
+        // Mid-document: estimate caret Y from line count (pre-wrap approx)
+        const style = window.getComputedStyle(editor);
+        let lineHeight = parseFloat(style.lineHeight);
+        if (!lineHeight || Number.isNaN(lineHeight)) {
+          lineHeight = (parseFloat(style.fontSize) || 13) * 1.55;
+        }
+        const lines = editor.value.slice(0, pos).split('\\n').length;
+        const caretTop = (lines - 1) * lineHeight;
+        const viewTop = editor.scrollTop;
+        const viewBottom = viewTop + editor.clientHeight;
+        const margin = lineHeight * 2.5;
+        if (caretTop + margin > viewBottom) {
+          editor.scrollTop = caretTop - editor.clientHeight + margin + lineHeight;
+        } else if (caretTop < viewTop + lineHeight) {
+          editor.scrollTop = Math.max(0, caretTop - lineHeight);
+        }
+      });
+    }
+
     window.addEventListener('message', (e) => {
       const msg = e.data;
       if (!msg) return;
@@ -311,6 +340,10 @@ class DraftPanelProvider {
         saveEl.textContent = 'synced';
         applying = false;
         editor.focus();
+        // Jump to end so you can continue writing
+        const end = editor.value.length;
+        editor.selectionStart = editor.selectionEnd = end;
+        scrollCaretIntoView();
       } else if (msg.type === 'empty') {
         document.body.classList.add('empty');
         titleEl.textContent = 'node repl';
@@ -326,12 +359,16 @@ class DraftPanelProvider {
     editor.addEventListener('input', () => {
       if (applying) return;
       emitChange();
+      scrollCaretIntoView();
     });
 
     editor.addEventListener('keydown', (e) => {
       if (e.key !== 'Enter' || e.ctrlKey || e.metaKey || e.altKey) return;
-      // Shift+Enter: normal newline, no indent
-      if (e.shiftKey || !autoIndent) return;
+      // Shift+Enter: normal newline, no indent — still scroll after
+      if (e.shiftKey || !autoIndent) {
+        requestAnimationFrame(scrollCaretIntoView);
+        return;
+      }
       e.preventDefault();
       const start = editor.selectionStart;
       const end = editor.selectionEnd;
@@ -342,6 +379,11 @@ class DraftPanelProvider {
       const pos = before.length + insert.length;
       editor.selectionStart = editor.selectionEnd = pos;
       emitChange();
+      scrollCaretIntoView();
+    });
+
+    editor.addEventListener('keyup', (e) => {
+      if (e.key === 'Enter') scrollCaretIntoView();
     });
 
     window.addEventListener('keydown', (e) => {
