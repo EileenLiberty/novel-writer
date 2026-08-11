@@ -294,32 +294,16 @@ class DraftPanelProvider {
       vscode.postMessage({ type: 'change', content });
     }
 
-    /** Keep caret visible after Enter / typing near the end */
-    function scrollCaretIntoView() {
+    /** Keep caret visible — only when writing at end or after Enter */
+    function scrollCaretIntoView(force) {
       requestAnimationFrame(() => {
         const pos = editor.selectionEnd;
         const len = editor.value.length;
-        // Writing at (or near) the end: stick to bottom like a terminal
-        if (pos >= len - 4) {
+        // Only stick to bottom when caret is at/near the end
+        if (force || pos >= len - 4) {
           editor.scrollTop = editor.scrollHeight;
-          return;
         }
-        // Mid-document: estimate caret Y from line count (pre-wrap approx)
-        const style = window.getComputedStyle(editor);
-        let lineHeight = parseFloat(style.lineHeight);
-        if (!lineHeight || Number.isNaN(lineHeight)) {
-          lineHeight = (parseFloat(style.fontSize) || 13) * 1.55;
-        }
-        const lines = editor.value.slice(0, pos).split('\\n').length;
-        const caretTop = (lines - 1) * lineHeight;
-        const viewTop = editor.scrollTop;
-        const viewBottom = viewTop + editor.clientHeight;
-        const margin = lineHeight * 2.5;
-        if (caretTop + margin > viewBottom) {
-          editor.scrollTop = caretTop - editor.clientHeight + margin + lineHeight;
-        } else if (caretTop < viewTop + lineHeight) {
-          editor.scrollTop = Math.max(0, caretTop - lineHeight);
-        }
+        // Mid-document edits: do nothing (keep user's current scroll)
       });
     }
 
@@ -343,7 +327,7 @@ class DraftPanelProvider {
         // Jump to end so you can continue writing
         const end = editor.value.length;
         editor.selectionStart = editor.selectionEnd = end;
-        scrollCaretIntoView();
+        scrollCaretIntoView(true);
       } else if (msg.type === 'empty') {
         document.body.classList.add('empty');
         titleEl.textContent = 'node repl';
@@ -359,14 +343,19 @@ class DraftPanelProvider {
     editor.addEventListener('input', () => {
       if (applying) return;
       emitChange();
-      scrollCaretIntoView();
+      // Only auto-scroll when typing at the end — not when editing earlier text
+      const pos = editor.selectionEnd;
+      if (pos >= editor.value.length - 4) {
+        scrollCaretIntoView(false);
+      }
     });
 
     editor.addEventListener('keydown', (e) => {
       if (e.key !== 'Enter' || e.ctrlKey || e.metaKey || e.altKey) return;
-      // Shift+Enter: normal newline, no indent — still scroll after
+      // Shift+Enter: normal newline, no indent
       if (e.shiftKey || !autoIndent) {
-        requestAnimationFrame(scrollCaretIntoView);
+        const nearEnd = editor.selectionEnd >= editor.value.length - 4;
+        if (nearEnd) requestAnimationFrame(() => scrollCaretIntoView(false));
         return;
       }
       e.preventDefault();
@@ -375,15 +364,24 @@ class DraftPanelProvider {
       const before = editor.value.slice(0, start);
       const after = editor.value.slice(end);
       const insert = '\\n' + indentText;
+      // Assigning editor.value resets scrollTop to 0 — preserve it
+      const prevScroll = editor.scrollTop;
       editor.value = before + insert + after;
       const pos = before.length + insert.length;
       editor.selectionStart = editor.selectionEnd = pos;
+      editor.scrollTop = prevScroll;
       emitChange();
-      scrollCaretIntoView();
+      // Only jump to bottom when continuing at document end
+      if (pos >= editor.value.length - 4) {
+        scrollCaretIntoView(true);
+      }
     });
 
     editor.addEventListener('keyup', (e) => {
-      if (e.key === 'Enter') scrollCaretIntoView();
+      if (e.key !== 'Enter') return;
+      if (editor.selectionEnd >= editor.value.length - 4) {
+        scrollCaretIntoView(false);
+      }
     });
 
     window.addEventListener('keydown', (e) => {
